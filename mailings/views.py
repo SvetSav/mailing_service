@@ -1,50 +1,61 @@
 from django.contrib import messages as flash
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
-from django.shortcuts import get_object_or_404, redirect
+from django.db.models import Count
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.cache import cache_page
 from django.views.generic import (
     CreateView,
     DeleteView,
     DetailView,
     ListView,
     UpdateView,
+    View,
 )
 
 from clients.models import Recipient
+from users.models import User
 
 from .forms import MailingForm, MessageForm
+from .mixins import EmailConfirmedRequiredMixin, ManagerRequiredMixin
 from .models import Attempt, Mailing, Message
 from .services import MailingSendError, send_mailing
 
 
 # -------------------- Home --------------------
-class HomeView(LoginRequiredMixin, View):
-    """Главная — статистика с кешированием."""
-
+# Кешируем главную страницу на 60 секунд на стороне клиента и сервера
+@method_decorator(cache_page(60), name="dispatch")
+class HomeView(EmailConfirmedRequiredMixin, View):
     def get(self, request):
         cache_key = f"home_stats_user_{request.user.pk}"
         stats = cache.get(cache_key)
 
         if stats is None:
             now = timezone.now()
-            qs = Mailing.objects.filter(owner=request.user)
+            qs = (
+                Mailing.objects.all()
+                if request.user.is_manager
+                else Mailing.objects.filter(owner=request.user)
+            )
+
             stats = {
                 "total": qs.count(),
-                "active": qs.filter(
-                    start_time__lte=now,
-                    end_time__gte=now,
-                    status=Mailing.STATUS_STARTED,
-                ).count(),
-                "recipients": Recipient.objects.filter(owner=request.user).count(),
+                # Считаем активные по датам, а не по полю status
+                # (так как мы его больше не обновляем при просмотре списка)
+                "active": qs.filter(start_time__lte=now, end_time__gte=now).count(),
+                "recipients": (
+                    Recipient.objects.all().count()
+                    if request.user.is_manager
+                    else Recipient.objects.filter(owner=request.user).count()
+                ),
             }
             cache.set(cache_key, stats, timeout=300)
 
-        return __import__("django.shortcuts", fromlist=["render"]).render(
-            request, "mailings/home.html", stats
-        )
+        return render(request, "mailings/home.html", stats)
 
 
 # -------------------- Message CRUD --------------------
@@ -90,16 +101,17 @@ class MessageDeleteView(LoginRequiredMixin, DeleteView):
 
 
 # -------------------- Mailing CRUD --------------------
-class MailingListView(LoginRequiredMixin, ListView):
+class MailingListView(EmailConfirmedRequiredMixin, ListView):
     model = Mailing
     template_name = "mailings/mailing_list.html"
     context_object_name = "mailings"
 
     def get_queryset(self):
-        qs = Mailing.objects.filter(owner=self.request.user).select_related("message")
-        # Обновим статус у каждой рассылки, чтобы список был актуальным
-        for m in qs:
-            m.update_status()
+        qs = (
+            Mailing.objects.filter(owner=self.request.user)
+            .select_related("message")
+            .annotate(rec_count=Count("recipients"))
+        )
         return qs
 
 
@@ -183,3 +195,62 @@ class MailingSendView(LoginRequiredMixin, View):
             flash.error(request, str(exc))
 
         return redirect("mailings:mailing_detail", pk=pk)
+
+
+# --------------------  Статистика --------------------
+class StatisticsView(EmailConfirmedRequiredMixin, View):
+    def get(self, request):
+        cache_key = f"stats_user_{request.user.pk}"
+        stats = cache.get(cache_key)
+
+        if stats is None:
+            mailings = (
+                Mailing.objects.all()
+                if request.user.is_manager
+                else Mailing.objects.filter(owner=request.user)
+            )
+            attempts = Attempt.objects.filter(mailing__in=mailings)
+
+            stats = {
+                "total_mailings": mailings.count(),
+                "success_attempts": attempts.filter(
+                    status=Attempt.STATUS_SUCCESS
+                ).count(),
+                "failed_attempts": attempts.filter(
+                    status=Attempt.STATUS_FAILED
+                ).count(),
+                "total_messages": (
+                    Message.objects.all().count()
+                    if request.user.is_manager
+                    else Message.objects.filter(owner=request.user).count()
+                ),
+            }
+            cache.set(cache_key, stats, timeout=300)
+
+        return render(request, "mailings/statistics.html", stats)
+
+
+# --------------------  Панель менеджера --------------------
+class ManagerDashboardView(ManagerRequiredMixin, ListView):
+    model = User
+    template_name = "mailings/manager_dashboard.html"
+    context_object_name = "users"
+
+    def get_queryset(self):
+        return User.objects.exclude(pk=self.request.user.pk).order_by("email")
+
+
+class ToggleUserBlockView(ManagerRequiredMixin, View):
+    def post(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        user.is_active = not user.is_active
+        user.save()
+        return redirect("mailings:manager_dashboard")
+
+
+class ToggleMailingDisableView(ManagerRequiredMixin, View):
+    def post(self, request, pk):
+        mailing = get_object_or_404(Mailing, pk=pk)
+        mailing.is_disabled = not mailing.is_disabled
+        mailing.save()
+        return redirect("mailings:mailing_list")

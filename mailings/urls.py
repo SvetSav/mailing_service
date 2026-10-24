@@ -38,4 +38,16 @@ urlpatterns = [
     path(
         "mailings/<int:pk>/send/", views.MailingSendView.as_view(), name="mailing_send"
     ),
+    path("statistics/", views.StatisticsView.as_view(), name="statistics"),
+    path("manager/", views.ManagerDashboardView.as_view(), name="manager_dashboard"),
+    path(
+        "manager/block-user/<int:pk>/",
+        views.ToggleUserBlockView.as_view(),
+        name="block_user",
+    ),
+    path(
+        "mailings/<int:pk>/toggle-disable/",
+        views.ToggleMailingDisableView.as_view(),
+        name="toggle_mailing_disable",
+    ),
 ]

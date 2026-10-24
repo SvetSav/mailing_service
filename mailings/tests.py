@@ -176,8 +176,14 @@ class MailingViewTests(TestCase):
     """Тесты доступа к страницам (изоляция данных)."""
 
     def setUp(self):
-        self.user1 = User.objects.create_user(email="u1@test.com", password="123")
-        self.user2 = User.objects.create_user(email="u2@test.com", password="123")
+        # Добавляем email_confirmed=True, чтобы миксин не перенаправлял нас на логин
+        self.user1 = User.objects.create_user(
+            email="u1@test.com", password="123", email_confirmed=True
+        )
+        self.user2 = User.objects.create_user(
+            email="u2@test.com", password="123", email_confirmed=True
+        )
+
         self.msg = Message.objects.create(subject="Test", body="Body", owner=self.user1)
         self.mailing1 = Mailing.objects.create(
             start_time=timezone.now(),
@@ -197,11 +203,15 @@ class MailingViewTests(TestCase):
         # Заходим под вторым пользователем (у него нет рассылок)
         self.client.login(email="u2@test.com", password="123")
         response = self.client.get(reverse("mailings:mailing_list"))
+
+        # Проверяем, что редиректа нет (статус 200)
+        self.assertEqual(response.status_code, 200)
         # Убеждаемся, что рассылки первого пользователя (#1) нет в списке
         self.assertNotContains(response, "#1")
 
         # Заходим под первым пользователем (владельцем рассылки)
         self.client.login(email="u1@test.com", password="123")
         response = self.client.get(reverse("mailings:mailing_list"))
+        self.assertEqual(response.status_code, 200)
         # Убеждаемся, что в списке есть рассылка с ID #1
         self.assertContains(response, "#1")
