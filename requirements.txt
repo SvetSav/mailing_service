@@ -1,0 +1,5 @@
+Django>=6.0,<7.0
+python-dotenv>=1.0
+django-redis>=5.4
+Pillow>=10.0
+ipython>=8.0

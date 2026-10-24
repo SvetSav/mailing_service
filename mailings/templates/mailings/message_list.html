@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Сообщения{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Шаблоны писем</h2>
+    <a href="{% url 'mailings:message_create' %}" class="btn btn-success">Создать сообщение</a>
+</div>
+
+<div class="row">
+    {% for message in messages %}
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ message.subject }}</h5>
+                <p class="card-text text-muted">{{ message.body|truncatechars:100 }}</p>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-end">
+                <a href="{% url 'mailings:message_update' message.pk %}" class="btn btn-sm btn-outline-primary me-2">Редактировать</a>
+                <a href="{% url 'mailings:message_delete' message.pk %}" class="btn btn-sm btn-outline-danger">Удалить</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <h5 class="text-muted">Сообщения пока не созданы</h5>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

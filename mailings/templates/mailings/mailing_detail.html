@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Рассылка #{{ mailing.pk }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Рассылка #{{ mailing.pk }}</h2>
+    <a href="{% url 'mailings:mailing_list' %}" class="btn btn-outline-secondary">← Назад к списку</a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white">Информация о рассылке</div>
+            <div class="card-body">
+                <p><strong>Тема:</strong> {{ mailing.message.subject }}</p>
+                <p><strong>Статус:</strong> {{ mailing.status }}</p>
+                <p><strong>Период:</strong> с {{ mailing.start_time|date:"d.m.Y H:i" }} по {{ mailing.end_time|date:"d.m.Y H:i" }}</p>
+                <p><strong>Получателей:</strong> {{ mailing.recipients.count }} чел.</p>
+
+                <form method="post" action="{% url 'mailings:mailing_send' mailing.pk %}" class="mt-3">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success w-100" {% if mailing.status != 'Запущена' %}disabled{% endif %}>
+                        🚀 Запустить рассылку сейчас
+                    </button>
+                    {% if mailing.status != 'Запущена' %}
+                        <small class="text-muted d-block mt-2 text-center">Отправка доступна только в период активности</small>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white">Текст сообщения</div>
+            <div class="card-body" style="white-space: pre-wrap;">{{ mailing.message.body }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white">История попыток отправки</div>
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Время</th>
+                    <th>Статус</th>
+                    <th>Ответ сервера</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attempt in mailing.attempts.all %}
+                <tr>
+                    <td>{{ attempt.attempt_time|date:"d.m.Y H:i:s" }}</td>
+                    <td>
+                        {% if attempt.status == 'Успешно' %}
+                            <span class="text-success">✔ {{ attempt.status }}</span>
+                        {% else %}
+                            <span class="text-danger">✘ {{ attempt.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">{{ attempt.server_response }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-3">Попыток отправки еще не было.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
