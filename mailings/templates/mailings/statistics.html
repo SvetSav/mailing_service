@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика рассылок{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📊 Статистика и отчеты</h2>
+    <a href="{% url 'mailings:home' %}" class="btn btn-outline-secondary">← На главную</a>
+</div>
+
+<!-- Блок с основными показателями -->
+<div class="row mb-4">
+    <!-- Всего рассылок -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card bg-primary text-white text-center p-4 mb-3 shadow-sm h-100">
+            <h3 class="display-4 fw-bold">{{ total_mailings }}</h3>
+            <p class="mb-0 fs-5">Всего рассылок</p>
+        </div>
+    </div>
+
+    <!-- Успешные попытки (Отправленные сообщения) -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card bg-success text-white text-center p-4 mb-3 shadow-sm h-100">
+            <h3 class="display-4 fw-bold">{{ success_attempts }}</h3>
+            <p class="mb-0 fs-5">Успешно отправлено</p>
+        </div>
+    </div>
+
+    <!-- Неуспешные попытки -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card bg-danger text-white text-center p-4 mb-3 shadow-sm h-100">
+            <h3 class="display-4 fw-bold">{{ failed_attempts }}</h3>
+            <p class="mb-0 fs-5">Ошибок при отправке</p>
+        </div>
+    </div>
+
+    <!-- Шаблоны писем -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card bg-info text-dark text-center p-4 mb-3 shadow-sm h-100">
+            <h3 class="display-4 fw-bold">{{ total_messages }}</h3>
+            <p class="mb-0 fs-5">Шаблонов писем</p>
+        </div>
+    </div>
+</div>
+
+<!-- Дополнительный информационный блок -->
+<div class="card shadow-sm mt-4">
+    <div class="card-body">
+        <h5 class="card-title">💡 Как это работает?</h5>
+        <p class="card-text text-muted mb-0">
+            Здесь отображается сводная статистика по вашим рассылкам.
+            «Успешно отправлено» — это количество писем, которые были доставлены почтовым сервером без ошибок (попытки со статусом «Успешно»).
+            «Ошибок при отправке» — количество попыток, которые завершились неудачей.
+            {% if user.is_manager %}
+            <br><strong class="text-warning">Вы вошли как менеджер, поэтому видите статистику по всем пользователям системы.</strong>
+            {% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}

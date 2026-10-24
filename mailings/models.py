@@ -58,6 +58,16 @@ class Mailing(models.Model):
         blank=True,
     )
 
+    is_disabled = models.BooleanField("отключена менеджером", default=False)
+
+    @property
+    def current_status(self):
+        """Возвращает актуальный статус без сохранения в БД."""
+        return self.get_calculated_status()
+
+    def __str__(self):
+        return f"Рассылка #{self.pk} — {self.message.subject}"
+
     class Meta:
         verbose_name = "рассылка"
         verbose_name_plural = "рассылки"

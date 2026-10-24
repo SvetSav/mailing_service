@@ -15,6 +15,9 @@ def send_mailing(mailing):
     Возвращает список созданных Attempt (batch).
     Бросает MailingSendError, если сейчас не окно рассылки.
     """
+    if mailing.is_disabled:
+        raise MailingSendError("Рассылка отключена менеджером.")
+
     now = timezone.now()
     if not (mailing.start_time <= now <= mailing.end_time):
         raise MailingSendError(

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Ошибка активации{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 text-center">
+        <div class="alert alert-danger p-5">
+            <h3>Ссылка недействительна</h3>
+            <p>Возможно, вы уже активировали этот аккаунт, либо срок действия ссылки истек.</p>
+            <a href="{% url 'users:login' %}" class="btn btn-primary mt-3">Перейти ко входу</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -28,12 +28,12 @@
                 <td>{{ mailing.start_time|date:"d.m.Y H:i" }}</td>
                 <td>{{ mailing.end_time|date:"d.m.Y H:i" }}</td>
                 <td>
-                    {% if mailing.status == 'Запущена' %}
-                        <span class="badge bg-success">{{ mailing.status }}</span>
-                    {% elif mailing.status == 'Завершена' %}
-                        <span class="badge bg-secondary">{{ mailing.status }}</span>
+                    {% if mailing.current_status == 'Запущена' %}
+                        <span class="badge bg-success">{{ mailing.current_status }}</span>
+                    {% elif mailing.current_status == 'Завершена' %}
+                        <span class="badge bg-secondary">{{ mailing.current_status }}</span>
                     {% else %}
-                        <span class="badge bg-warning text-dark">{{ mailing.status }}</span>
+                        <span class="badge bg-warning text-dark">{{ mailing.current_status }}</span>
                     {% endif %}
                 </td>
                 <td>
